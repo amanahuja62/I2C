@@ -5,27 +5,31 @@ wire clk1;
 reg serialdataBus_s1,oe_sda,oe_db;
 assign dataBus_s=(oe_db)?(receiveReg):(8'bZ);
 assign sda=(oe_sda)?(serialdataBus_s1):(1'bz);
-parameter s_idle='d0,
-			 s_active='d1,
-			 s_read_address='d2,
-			 s_read_message='d3,
-			 s_send_nack='d4,
-			 s_send_ack='d5,
-			 s_stop_detection='d6,
-			 s_start_detection='d7,
-			 s_send_message='d8,
-			 s_ack_detection='d9,
-/*correction new state added*/ s_ack_address='d10;
-//internal signals used
-mode8counter m(scl,reset,clk1);
+parameter                s_idle='d0,   //when reset FSM goes in idle state
+			 s_active='d1, //when start condition is detected FSM goes to active state
+			 s_read_address='d2, //in this state slave reads 7 bit address sent by master
+			 s_read_message='d3, //in this state slave reads 8 bit data sent by master
+	                 s_send_nack='d4,// in this state slave sends negative acknowledgement 
+	                                 //if there is discrepency in the data it received from the master
+			 s_send_ack='d5,//in this state slave sends positive acknowledgement 
+	                                //if there is discrepency in the data it received from the master
+			 s_stop_detection='d6,// state for detecting stop condition
+			 s_start_detection='d7,// state for detecting start condition
+	                 s_send_message='d8,// state for sending message to the master
+			 s_ack_detection='d9,// state for detecting acknowledgement sent by master
+/*correction new state added*/ s_ack_address='d10;// state for sending acknowledgement if address sent by
+	                                                  //master matches slave's address
 
+mode8counter m(scl,reset,clk1);
+//internal signals used
 reg sdetect,resetC3,incC3,resetC2,incC2,resetC1,incC1,receiveData,shiftTR,
 	 loadTR,clear,preset,discrepency,stopDetected,startDetected;
 wire lsb,ackGot;
 //registers used
 //reg[3:0] sdetector; // 4bit register used to detect start and stop condition during positive edge of clk
 reg[7:0] transmitReg,receiveReg; // 8 bit registers for transmiting and receiving  data serially via sda
-reg[2:0] c2,c3,c1;
+reg[2:0] c2,c3,c1; //counters----c2 and c3 counter increment at every posedge scl
+	           // counter c3 increments at every posedge of clk1
 reg[3:0] i,sdetector;
 
 assign lsb=receiveReg[0];
@@ -110,7 +114,7 @@ else
 c_state<=n_state;
 end
 
-
+////code for deciding output and nextState of FSM
 always@(*) begin
 resetC3=0; incC3=0; resetC1=0; incC1=0; resetC2=0; incC2=0; receiveData=0; sdetect=0; clear=0; 
 preset=0; shiftTR=0; loadTR=0;	
@@ -234,8 +238,10 @@ s_start_detection: begin
 default: n_state=s_idle;						 
 endcase
 end
-
-
+	
+//when oe_db is asserted slave can send the data(received from master) to the bidirectional 8 bit data bus
+//when oe_sda is asserted slave is able to send data or ack signals via sda(serial data line)
+	
 always@(*) begin
 oe_db=0; oe_sda=0;
 case(c_state)
