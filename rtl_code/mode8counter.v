@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-
+// this counter is used by master and slave to divide the frequency of clock signal by 8
 module mode8counter(
     input clk2,reset,
     output  clk1
