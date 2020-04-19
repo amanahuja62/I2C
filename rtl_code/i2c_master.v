@@ -1,5 +1,11 @@
 `timescale 1ns / 1ps
 module master(input clk,start,stop,reset,inout sda,scl,inout[7:0] dataBus,output reg scl_enable);
+// datBus: It is the 1 byte bidirectional databus which sends data to be sent serially to the slave via sda
+//start: master is in idle state. When start signal is asserted, master comes in start state in the next positive edge of scl
+//(serial clock)
+//sda: It is serial data line which is bidirectional in nature.
+//reset: It resets the master and brings it to idle state. It is asynchronous signal.
+	
 // defining states for FSM
 parameter
 s_idle = 4'd0,
@@ -14,7 +20,7 @@ s_detect_ack=4'd8,
 s_repstart=4'd9,
 s_stop=4'd10; 
 
-reg[3:0] c_state,n_state;
+reg[3:0] c_state,n_state; //currentState and nextState of FSM
 
 //freq of scl is 8 times greater than clk1
 // both preset and reset are synchronous and change transmitReg[7]
@@ -104,7 +110,7 @@ else if(~clk1&&incC2)
 c2<=c2+1;
 end
 
-
+//code for deciding next state of FSM and output signals of FSM
 always@(*) begin
 sendStart=0; sendStop=0; incC3=0; incC2=0; incC1=0; resetC1=0; resetC2=0; resetC3=0; shiftTR=0;
 loadTR=0; receiveData=0;preset=0; clear=0;
@@ -221,6 +227,8 @@ else
 c_state<=n_state;
 end
 
+//oe_sda: When deasserted master tristates the serial data line(sda). When asserted master sends the data via serial data line.
+//oe_db: When asserted master can send the eight bit data(received from slave) to the bidirectional eight bit data bus.
 always@(*) begin
 oe_db=0; oe_sda=0; 
 case(c_state) 
